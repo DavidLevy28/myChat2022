@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+ 		match /users/{userId}/days/{document=**}{
+      allow read: if true;
+      allow write: if request.auth.uid == userId;
+    }
+    
+		match /users/{userId}{
+			allow read: if isAuthenticated();
+			allow update,delete: if request.auth.uid == userId;
+			allow create: if true;
+		}
+   
+    match /orders/{orderId}{
+			allow read, write: if isAuthenticated() 
+    }
+    match /yards/{yardId}/yardOrders/{document=**}{
+    	allow read,create: if isAuthenticated()
+       allow update,delete: if isAuthenticated()
+      
+       // function isTheYardOwner(uid){
+       // return request.auth.uid == resource.data.uidChef;
+       // }
+    }
+    
+    match /yards/{yardId} {
+   		allow read: if isAuthenticated();
+      allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAChef == true;     
+      allow update,delete: if isAuthenticated() && isTheYardOwner(request.auth.uid);
+       
+       function isTheYardOwner(uid){
+      		return request.auth.uid == resource.data.uidChef;
+      	}
+		}
+    
+    match /food_categories/{document=**}{
+    	allow read: if isAuthenticated();
+      allow write: if false;
+    }
+  
+    function isAuthenticated() {
+      return request.auth != null
+    }
+    
+      //match all Users
+    // match /{document=**} {
+    //   allow read, write: if true
+    // }
+  }
+}
+
